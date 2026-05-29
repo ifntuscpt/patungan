@@ -1,0 +1,10 @@
+{
+  "name": "Patungan",
+  "description": "Patungan - Aplikasi split bill bertenaga AI untuk pasar Indonesia. Foto struk, share link, beres.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

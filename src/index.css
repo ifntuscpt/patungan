@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* Brand Theme Colors */
+  --color-green-50: #E8F5E9;
+  --color-green-100: #C8E6C9;
+  --color-green-200: #A5D6A7;
+  --color-green-300: #81C784;
+  --color-green-400: #4CAF50;
+  --color-green-500: #00C853;
+  --color-green-600: #00A846;
+  --color-green-700: #008537;
+  --color-green-800: #006227;
+  --color-green-900: #003D17;
+
+  --color-orange-50: #FFF3E0;
+  --color-orange-100: #FFE0B2;
+  --color-orange-200: #FFCC80;
+  --color-orange-300: #FFB74D;
+  --color-orange-400: #FFA726;
+  --color-orange-500: #FF6D00;
+  --color-orange-600: #E65100;
+  --color-orange-700: #BF360C;
+  --color-orange-800: #8D2400;
+  --color-orange-900: #5C1500;
+
+  /* Warm Neutrals */
+  --color-neutral-0: #FFFFFF;
+  --color-neutral-50: #FAF9F7;
+  --color-neutral-100: #F0EEE9;
+  --color-neutral-200: #E0DDD7;
+  --color-neutral-300: #C9C5BE;
+  --color-neutral-400: #9C9590;
+  --color-neutral-500: #6B6560;
+  --color-neutral-600: #4A4540;
+  --color-neutral-700: #3D3A37;
+  --color-neutral-800: #2A2724;
+  --color-neutral-900: #1A1816;
+}
+
+/* Custom Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+
+.animate-wiggle {
+  animation: wiggle 3s ease-in-out infinite;
+}
+
+body {
+  background-color: #FAF9F7; /* Warm Neutral 50 */
+  color: #1A1816; /* Warm Neutral 900 */
+  font-family: var(--font-sans);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E0DDD7; /* Warm Neutral 200 */
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C9C5BE; /* Warm Neutral 300 */
+}
+
+/* Design System Utilities mapped to standard classes */
+.emoji-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  font-style: normal;
+  line-height: 1;
+}
+
+.emoji-icon--xs { width: 32px; height: 32px; font-size: 14px; }
+.emoji-icon--sm { width: 40px; height: 40px; font-size: 18px; }
+.emoji-icon--md { width: 48px; height: 48px; font-size: 22px; }
+.emoji-icon--lg { width: 56px; height: 56px; font-size: 26px; }
+.emoji-icon--xl { width: 72px; height: 72px; font-size: 32px; }
+
+.emoji-icon--green { background-color: var(--color-green-100); color: var(--color-green-900); }
+.emoji-icon--orange { background-color: var(--color-orange-100); color: var(--color-orange-900); }
+.emoji-icon--blue { background-color: #E3F2FD; color: #0D47A1; }
+.emoji-icon--purple { background-color: #EDE7F6; color: #4A148C; }
+.emoji-icon--red { background-color: #FFEBEE; color: #B71C1C; }
+.emoji-icon--yellow { background-color: #FFFDE7; color: #F57F17; }
+.emoji-icon--neutral { background-color: var(--color-neutral-100); color: var(--color-neutral-700); }
+
+/* Buttons styling directly corresponding to design system classes */
+.btn-primary-gradient {
+  background: linear-gradient(180deg, var(--color-green-500) 0%, var(--color-green-600) 100%);
+  box-shadow: 0 4px 20px rgba(0, 200, 83, 0.28), 0 1px 3px rgba(26,24,22,0.06);
+}
+.btn-primary-gradient:hover {
+  background: linear-gradient(180deg, var(--color-green-400) 0%, var(--color-green-500) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(0, 200, 83, 0.35), 0 1px 3px rgba(26,24,22,0.06);
+}
+.btn-primary-gradient:active {
+  transform: translateY(0);
+}
+
+.btn-orange-gradient {
+  background: linear-gradient(180deg, var(--color-orange-500) 0%, var(--color-orange-600) 100%);
+  box-shadow: 0 4px 20px rgba(255, 109, 0, 0.28);
+}
+.btn-orange-gradient:hover {
+  background: linear-gradient(180deg, var(--color-orange-400) 0%, var(--color-orange-500) 100%);
+  transform: translateY(-1px);
+}
+.btn-orange-gradient:active {
+  transform: translateY(0);
+}

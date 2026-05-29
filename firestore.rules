@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Sessions collection
+    match /sessions/{sessionId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isHost(resourceData) {
+        return isSignedIn() && resourceData.hostId == request.auth.uid;
+      }
+
+      // Any guest with the session ID link can view/get the session
+      allow get: if true;
+
+      // Only authenticated hosts can query their list of active sessions
+      allow list: if isSignedIn() && resource.data.hostId == request.auth.uid;
+
+      // Allow creation by signed in host
+      allow create: if isSignedIn()
+        && request.resource.data.hostId == request.auth.uid
+        && request.resource.data.id == sessionId;
+
+      // Allow updates:
+      // 1. Fully permitted for the authenticated Host of this session.
+      // 2. Guest updates are permitted ONLY for claiming items, managing participants, setting luckyDrawWinnerId, or uploading proofImageUrl.
+      // We protect core financial/metadata fields from being manipulated by guests.
+      allow update: if (
+        (isSignedIn() && isHost(resource.data)) ||
+        (
+          request.resource.data.hostId == resource.data.hostId &&
+          request.resource.data.hostEmail == resource.data.hostEmail &&
+          request.resource.data.id == resource.data.id &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.grandTotal == resource.data.grandTotal &&
+          request.resource.data.subtotalItems == resource.data.subtotalItems &&
+          request.resource.data.taxAmount == resource.data.taxAmount &&
+          request.resource.data.serviceCharge == resource.data.serviceCharge &&
+          request.resource.data.name == resource.data.name &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['items', 'participants', 'luckyDrawWinnerId', 'roundingAmount', 'status'])
+        )
+      );
+
+      // Only the host can delete a session
+      allow delete: if isSignedIn() && isHost(resource.data);
+    }
+  }
+}

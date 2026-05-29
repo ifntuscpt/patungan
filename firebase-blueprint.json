@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "Session": {
+      "title": "Session",
+      "description": "Split bill session with line items and participants.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the session." },
+        "hostId": { "type": "string", "description": "Firebase Auth UID of the host." },
+        "hostEmail": { "type": "string", "description": "Email address of the host user." },
+        "name": { "type": "string", "description": "User-defined name for the session." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Firestore server timestamp of creation." },
+        "status": {
+          "type": "string",
+          "enum": ["setup", "claiming", "payment", "settled"],
+          "description": "Current lifecycle status of the split-bill session."
+        },
+        "items": {
+          "type": "array",
+          "description": "Array of item details extracted from the receipt."
+        },
+        "participants": {
+          "type": "array",
+          "description": "Array of split-bill participants and their progress."
+        },
+        "taxAmount": { "type": "number", "description": "Total tax amount from receipt in IDR" },
+        "serviceCharge": { "type": "number", "description": "Total service charge from receipt in IDR" },
+        "subtotalItems": { "type": "number", "description": "Subtotal of all line items in IDR before fees" },
+        "grandTotal": { "type": "number", "description": "Total final receipt payment amount in IDR" },
+        "roundingAmount": { "type": "number", "description": "Adjustment remainder for sum calibration" },
+        "luckyDrawWinnerId": { "type": "string", "description": "Participant assigned to bear the rounding amount" },
+        "paymentInfo": { "type": "object", "description": "Bank and QRIS details to process guests transfers" }
+      },
+      "required": ["id", "hostId", "hostEmail", "name", "createdAt", "status", "items", "participants", "taxAmount", "serviceCharge", "subtotalItems", "grandTotal", "roundingAmount", "paymentInfo"]
+    }
+  },
+  "firestore": {
+    "/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "A split-bill session containing receipts, participants lists, and status flags."
+    }
+  }
+}
