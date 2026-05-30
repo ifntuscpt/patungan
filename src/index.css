@@ -46,11 +46,9 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -149,3 +147,11 @@ body {
 .btn-orange-gradient:active {
   transform: translateY(0);
 }
+
+/* Prevent auto-zooming on focus in iOS / Mobile browsers by forcing font size of at least 16px */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+

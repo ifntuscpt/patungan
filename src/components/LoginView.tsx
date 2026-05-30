@@ -67,10 +67,25 @@ export function LoginView({ onSuccess, onError }: LoginViewProps) {
         
         {/* App Logo & Wordmark */}
         <header className="flex flex-col items-center pt-2 pb-4">
-          <AppLogo size={56} className="mb-3 animate-pulse" />
+          <div className="relative mb-3">
+              <AppLogo size={56} className="relative z-10" />
+              <motion.div 
+                className="absolute inset-0 bg-white/40 blur-xl rounded-full"
+                animate={{
+                    opacity: [0, 0.6, 0],
+                    scale: [0.8, 1.5, 0.8]
+                }}
+                transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                }}
+              />
+          </div>
           <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 leading-none">
             Patungan
           </h1>
+          <p className="text-neutral-500 text-[10px] font-semibold mt-2.5">Foto struk, share link, beres.</p>
         </header>
 
         {/* Dynamic Sliding Section */}

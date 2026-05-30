@@ -44,28 +44,23 @@ export function calculateSessionFinance(session: Partial<Session>): {
   }
 
   // 2. Compute normal subtotal per participant based on their claimed items
-  let participants: Participant[] = rawParticipants.map(participant => {
-    // For each item code claimed by this participant, we find the share of price.
-    // If an item is claimed by multiple people, we split the cost of that unit split equally!
-    // Wait, the specification says:
-    // price = price per unit
-    // claimedItems = item IDs this participant claimed
-    // Let's implement the standard share cost model:
+  let participants = rawParticipants.map(participant => {
     // For each item, if it is claimed by N participants, each participant pays (item.price * item.quantity / N).
-    let subtotal = 0;
+    let subtotalClaimed = 0;
     
     items.forEach(item => {
       if (item.claimedBy.includes(participant.id)) {
         const shareCount = item.claimedBy.length;
         if (shareCount > 0) {
-          subtotal += (item.price * item.quantity) / shareCount;
+          subtotalClaimed += (item.price * item.quantity) / shareCount;
         }
       }
     });
 
     return {
       ...participant,
-      subtotal: Math.round(subtotal),
+      subtotalClaimed,
+      subtotal: 0,
       taxPortion: 0,
       servicePortion: 0,
       total: 0,
@@ -73,20 +68,32 @@ export function calculateSessionFinance(session: Partial<Session>): {
     };
   });
 
-  // 3. Compute proportional tax and service charge shares
+  const totalClaimedSum = participants.reduce((sum, p) => sum + p.subtotalClaimed, 0);
+  const unclaimedCost = subtotalItems - totalClaimedSum;
+
+  // 3. Compute proportional final subtotals, tax, and service charge shares
   let calculatedSum = 0;
   participants = participants.map(p => {
-    const taxPortion = (p.subtotal / subtotalItems) * taxAmount;
-    const servicePortion = (p.subtotal / subtotalItems) * serviceCharge;
-    const itemAndFees = p.subtotal + taxPortion + servicePortion;
-    const total = Math.round(itemAndFees);
-    calculatedSum += total;
+    let subFloat = 0;
+    if (totalClaimedSum > 0) {
+      subFloat = p.subtotalClaimed + (p.subtotalClaimed / totalClaimedSum) * unclaimedCost;
+    } else {
+      subFloat = subtotalItems / participants.length;
+    }
+
+    const taxPortion = (subFloat / subtotalItems) * taxAmount;
+    const servicePortion = (subFloat / subtotalItems) * serviceCharge;
+    const finalTotalWithFees = subFloat + taxPortion + servicePortion;
+    const totalRounded = Math.round(finalTotalWithFees);
+    
+    calculatedSum += totalRounded;
 
     return {
       ...p,
+      subtotal: Math.round(subFloat),
       taxPortion: Math.round(taxPortion),
       servicePortion: Math.round(servicePortion),
-      total: total
+      total: totalRounded
     };
   });
 
@@ -111,3 +118,16 @@ export function calculateSessionFinance(session: Partial<Session>): {
     roundingAmount
   };
 }
+
+/**
+ * Ensures that the copied / shared URL is always a public-accessible "ais-pre-" URL
+ * instead of the private host "ais-dev-" URL.
+ */
+export function getPublicShareUrl(sessionId: string): string {
+  const origin = window.location.origin;
+  if (origin.includes("ais-dev-")) {
+    return `${origin.replace("ais-dev-", "ais-pre-")}/s/${sessionId}`;
+  }
+  return `${origin}/s/${sessionId}`;
+}
+

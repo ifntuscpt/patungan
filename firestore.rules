@@ -33,15 +33,6 @@ service cloud.firestore {
       allow update: if (
         (isSignedIn() && isHost(resource.data)) ||
         (
-          request.resource.data.hostId == resource.data.hostId &&
-          request.resource.data.hostEmail == resource.data.hostEmail &&
-          request.resource.data.id == resource.data.id &&
-          request.resource.data.createdAt == resource.data.createdAt &&
-          request.resource.data.grandTotal == resource.data.grandTotal &&
-          request.resource.data.subtotalItems == resource.data.subtotalItems &&
-          request.resource.data.taxAmount == resource.data.taxAmount &&
-          request.resource.data.serviceCharge == resource.data.serviceCharge &&
-          request.resource.data.name == resource.data.name &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['items', 'participants', 'luckyDrawWinnerId', 'roundingAmount', 'status'])
         )
       );

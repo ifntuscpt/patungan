@@ -3,7 +3,7 @@ import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db, OperationType, handleFirestoreError, auth } from "../firebase";
 import { ReceiptItem, Participant, PaymentInfo, Session } from "../types";
 import { formatIDR, calculateSessionFinance } from "../utils/calculations";
-import { Camera, Plus, Trash2, ArrowRight, ArrowLeft, Check, Copy, Share2, Upload, Receipt, UserMinus, AlertCircle, Users, BarChart3, CreditCard, Lock, QrCode } from "lucide-react";
+import { Camera, Plus, Trash2, ArrowRight, ArrowLeft, Check, Copy, Share2, Upload, Receipt, UserMinus, AlertCircle, Users, BarChart3, CreditCard, Lock, QrCode, Image } from "lucide-react";
 
 interface CreateSessionWizardProps {
   onSessionCreated: (sessionId: string) => void;
@@ -88,6 +88,8 @@ export function CreateSessionWizard({ onSessionCreated, onBackToDashboard, onErr
   const [newParticipantName, setNewParticipantName] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const receiptCameraRef = useRef<HTMLInputElement>(null);
+  const receiptGalleryRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -429,23 +431,31 @@ export function CreateSessionWizard({ onSessionCreated, onBackToDashboard, onErr
 
             {/* OCR Snapshot Area */}
             <div
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all text-center relative group ${
+              className={`border-2 border-dashed rounded-2xl p-4.5 flex flex-col items-center justify-center gap-3 transition-all relative ${
                 loadingOCR
-                  ? "border-green-500 bg-green-50/50"
-                  : "border-neutral-200 bg-neutral-50 hover:border-green-400 hover:bg-green-50/25"
+                  ? "border-green-500 bg-green-50/50 cursor-not-allowed text-center p-6"
+                  : "border-neutral-200 bg-neutral-50/60"
               }`}
             >
+              {/* Separate Hidden Input Nodes for Precise Device Ingress Control */}
               <input
                 type="file"
-                ref={fileInputRef}
+                ref={receiptCameraRef}
                 onChange={handleFileChange}
                 accept="image/*"
                 className="hidden"
                 capture="environment"
               />
+              <input
+                type="file"
+                ref={receiptGalleryRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
+
               {loadingOCR ? (
-                <div className="py-4 flex flex-col items-center gap-3">
+                <div className="py-4 flex flex-col items-center gap-3 text-center">
                   <div className="w-10 h-10 border-3 border-green-500 border-t-transparent rounded-full animate-spin"></div>
                   <div className="space-y-1">
                     <p className="text-xs font-extrabold text-green-600 animate-pulse">
@@ -457,17 +467,45 @@ export function CreateSessionWizard({ onSessionCreated, onBackToDashboard, onErr
                   </div>
                 </div>
               ) : (
-                <>
-                  <div className="w-12 h-12 rounded-full bg-green-50 text-green-500 flex items-center justify-center group-hover:scale-105 transition-transform shadow-1 border border-green-100">
-                    <Camera size={22} className="stroke-[2.5]" />
+                <div className="w-full flex flex-col gap-3">
+                  {/* Option 1: Live Camera Capture */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      receiptCameraRef.current?.click();
+                    }}
+                    className="flex items-center gap-3.5 p-3.5 bg-white border border-neutral-200 hover:border-green-500/50 rounded-2xl cursor-pointer transition-all active:scale-[0.98] hover:shadow-sm animate-scale-in"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-green-50/80 text-green-650 flex items-center justify-center shrink-0 border border-green-100">
+                      <Camera size={18} className="stroke-[2.5]" />
+                    </div>
+                    <div className="text-left min-w-0">
+                      <p className="text-xs font-extrabold text-neutral-850">Ambil Foto Struk (Kamera)</p>
+                      <p className="text-[10px] text-neutral-450 font-medium mt-0.5 leading-snug">
+                        Gunakan kamera ponsel untuk mengambil foto struk secara langsung
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-extrabold text-neutral-900">Ambil Foto Struk</p>
-                    <p className="text-[11px] text-neutral-400 font-medium max-w-[252px] leading-relaxed">
-                      Posisikan struk di tengah dan pastikan tulisan item & harga kasir terbaca jelas.
-                    </p>
+
+                  {/* Option 2: Choose File / Gallery */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      receiptGalleryRef.current?.click();
+                    }}
+                    className="flex items-center gap-3.5 p-3.5 bg-white border border-neutral-200 hover:border-green-500/50 rounded-2xl cursor-pointer transition-all active:scale-[0.98] hover:shadow-sm animate-scale-in"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50/80 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                      <Image size={18} className="stroke-[2.5]" />
+                    </div>
+                    <div className="text-left min-w-0">
+                      <p className="text-xs font-extrabold text-neutral-850">Pilih dari Galeri / File</p>
+                      <p className="text-[10px] text-neutral-450 font-medium mt-0.5 leading-snug">
+                        Gunakan foto struk yang sudah Anda ambil atau simpan sebelumnya
+                      </p>
+                    </div>
                   </div>
-                </>
+                </div>
               )}
             </div>
 

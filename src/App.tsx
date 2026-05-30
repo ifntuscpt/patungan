@@ -161,6 +161,38 @@ export default function App() {
     }
   }, [currentRoute.route, currentRoute.params.sessionId]);
 
+  // 4. Safe Guest Redirection & Validation Effect
+  useEffect(() => {
+    const isGuestFlow = currentRoute.route.startsWith("guest-");
+    const sId = currentRoute.params.sessionId;
+    
+    if (isGuestFlow && sId && activeGuestSession) {
+      // Validation 0: If the logged-in Host is accessing their own session's guest link, redirect them to the host monitor dashboard
+      if (user && user.uid === activeGuestSession.hostId) {
+        addToast("Membuka sebagai Host. Mengarahkan Anda ke Dashboard Kelola Sesi...", "info");
+        navigateTo(`/session/${sId}/monitor`);
+        return;
+      }
+
+      const activeParticipantId = getStoredParticipantId(sId);
+      
+      // Validation 1: Force select name if no identity is present and trying to perform actions (except name selection)
+      if (!activeParticipantId && currentRoute.route !== "guest-select") {
+        navigateTo(`/s/${sId}`);
+        return;
+      }
+
+      // Validation 2: If on payment page, check if payment is already pending or verified, redirect to /done
+      if (currentRoute.route === "guest-payment" && activeParticipantId) {
+        const me = activeGuestSession.participants.find((p) => p.id === activeParticipantId);
+        if (me && (me.paymentStatus === "pending_verification" || me.paymentStatus === "verified")) {
+          navigateTo(`/s/${sId}/done`);
+          return;
+        }
+      }
+    }
+  }, [currentRoute.route, currentRoute.params.sessionId, activeGuestSession, user]);
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -252,9 +284,13 @@ export default function App() {
 
       // Guest operations require checked participant id
       if (!activeParticipantId) {
-        // Kick back to setup select if identity is empty!
-        navigateTo(`/s/${sId}`);
-        return null;
+        // Safe placeholder while Redirection Effect works
+        return (
+          <div className="min-h-[40vh] flex flex-col justify-center items-center">
+            <div className="w-6 h-6 border-2 border-[#00C853] border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs text-[#757575] mt-2">Mengarahkan...</p>
+          </div>
+        );
       }
 
       // 2. Guest Claim Screen
@@ -278,6 +314,9 @@ export default function App() {
             participantId={activeParticipantId}
             onNavigateToLuckyDraw={() => navigateTo(`/s/${sId}/lucky-draw`)}
             onNavigateToPayment={() => navigateTo(`/s/${sId}/payment`)}
+            onSuccess={(m) => addToast(m, "success")}
+            onError={(m) => addToast(m, "error")}
+            onHostAutoVerified={() => navigateTo(`/s/${sId}/done`)}
           />
         );
       }
@@ -297,10 +336,14 @@ export default function App() {
 
       // 5. Guest Bank Coordinates & Upload proof Screen
       if (route === "guest-payment") {
-        // If they already did upload, direct them to done screen!
         const me = activeGuestSession.participants.find(p => p.id === activeParticipantId);
         if (me && (me.paymentStatus === "pending_verification" || me.paymentStatus === "verified")) {
-          navigateTo(`/s/${sId}/done`);
+          return (
+            <div className="min-h-[40vh] flex flex-col justify-center items-center">
+              <div className="w-6 h-6 border-2 border-[#00C853] border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs text-[#757575] mt-2">Memproses Status Pembayaran...</p>
+            </div>
+          );
         }
 
         return (
@@ -325,15 +368,19 @@ export default function App() {
             sessionName={activeGuestSession.name}
             participantName={me?.name || "Rekan"}
             totalPaid={paidAmount}
+            paymentStatus={me?.paymentStatus || "pending_verification"}
             onRefreshStatus={() => {
               if (me?.paymentStatus === "verified") {
-                addToast("Selamat! Pembayaran Anda telah Lunas diverifikasi oleh Host! 🎉", "success");
+                addToast("Selamat! Pembayaran Anda telah Lunas diverifikasi oleh Host!", "success");
               } else {
-                addToast("Host sedang memeriksa mutasi pembayaran Anda. Silakan bersabar. 🙏", "info");
+                addToast("Host sedang memeriksa mutasi pembayaran Anda. Silakan bersabar.", "info");
               }
             }}
             onBackToClaim={() => {
               navigateTo(`/s/${sId}/claim`);
+            }}
+            onStartOwnSession={() => {
+              navigateTo("/");
             }}
           />
         );
@@ -346,7 +393,7 @@ export default function App() {
         <LoginView
           onSuccess={(usr) => {
             setUser(usr);
-            addToast(`Selamat datang, ${usr.displayName || "Host"}! 👋`, "success");
+            addToast(`Selamat datang, ${usr.displayName || "Host"}!`, "success");
             navigateTo("/");
           }}
           onError={(m) => addToast(m, "error")}

@@ -1,7 +1,6 @@
 import React, { useState, useRef } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../firebase";
+import { db } from "../firebase";
 import { Session, Participant } from "../types";
 import { formatIDR } from "../utils/calculations";
 import { Upload, FileText, Landmark, Copy, ClipboardCheck, ArrowRight, ArrowLeft } from "lucide-react";
@@ -52,19 +51,61 @@ export function GuestPayment({
     }
   };
 
+  const compressImage = (base64Str: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 500;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL("image/jpeg", 0.6); // 60% quality JPEG is extremely small & legible
+          resolve(compressed);
+        } else {
+          resolve(base64Str);
+        }
+      };
+      img.onerror = () => {
+        resolve(base64Str);
+      };
+      img.src = base64Str;
+    });
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      onError("Ukuran gambar melebihi batas maksimal 5MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      onError("Ukuran gambar melebihi batas maksimal 10MB.");
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setProofBase64(reader.result as string);
-      onSuccess("Bukti transfer berhasil dipilih. Tinjau foto di bawah.");
+    reader.onloadend = async () => {
+      onSuccess("Memproses & mengoptimalkan gambar...");
+      const compressed = await compressImage(reader.result as string);
+      setProofBase64(compressed);
+      onSuccess("Bukti transfer berhasil dipilih & dioptimalkan.");
     };
     reader.readAsDataURL(file);
   };
@@ -77,22 +118,9 @@ export function GuestPayment({
 
     setUploading(true);
     try {
-      let finalUrl = "";
-
-      // 1. Try uploading to Firebase Storage under path: proofs/{sessionId}/{participantId}/{timestamp}
-      try {
-        const timestamp = Date.now();
-        const storagePath = `proofs/${session.id}/${participantId}/${timestamp}`;
-        const storageRef = ref(storage, storagePath);
-
-        // Upload the selected screenshot
-        const uploadResult = await uploadString(storageRef, proofBase64, "data_url");
-        finalUrl = await getDownloadURL(uploadResult.ref);
-      } catch (storageError) {
-        console.warn("Storage upload failed or rate-limited. Falling back to inline base64...", storageError);
-        // Reserving fallback for Spark free nodes: saving standard base64 inline directly in doc
-        finalUrl = proofBase64;
-      }
+      // 1. We directly use the compressed base64 datastring as the proofImageUrl.
+      // This is fast, 100% reliable, and bypasses Cloud Storage completely, resolving the infinite loading issue.
+      const finalUrl = proofBase64;
 
       // 2. Transcribe status in Firestore doc
       const docRef = doc(db, "sessions", session.id);
@@ -117,11 +145,11 @@ export function GuestPayment({
           participants: updatedParticipants,
         });
 
-        onSuccess("Bukti transfer Anda berhasil diunggah. Menunggu persetujuan Host.");
+        onSuccess("Bukti transfer Anda berhasil dikirim! Menunggu konfirmasi Host.");
         onPaymentSubmitted();
       }
     } catch (err: any) {
-      console.error("Payment proof upload submission failure:", err);
+      console.error("Payment proof submission failure:", err);
       onError("Gagal mengirimkan bukti transfer Anda. Silakan coba kembali.");
     } finally {
       setUploading(false);

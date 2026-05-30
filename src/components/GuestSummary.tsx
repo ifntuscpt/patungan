@@ -1,12 +1,18 @@
+import React, { useState } from "react";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase";
 import { Session, Participant } from "../types";
 import { formatIDR } from "../utils/calculations";
-import { Receipt, AlertTriangle, ArrowRight, Sparkles, AlertCircle } from "lucide-react";
+import { Receipt, AlertTriangle, ArrowRight, Sparkles, AlertCircle, CheckCircle, Shield } from "lucide-react";
 
 interface GuestSummaryProps {
   session: Session;
   participantId: string;
   onNavigateToLuckyDraw: () => void;
   onNavigateToPayment: () => void;
+  onSuccess: (msg: string) => void;
+  onError: (msg: string) => void;
+  onHostAutoVerified: () => void;
 }
 
 export function GuestSummary({
@@ -14,7 +20,11 @@ export function GuestSummary({
   participantId,
   onNavigateToLuckyDraw,
   onNavigateToPayment,
+  onSuccess,
+  onError,
+  onHostAutoVerified,
 }: GuestSummaryProps) {
+  const [loading, setLoading] = useState(false);
   const currentParticipant = session.participants.find((p) => p.id === participantId);
 
   if (!currentParticipant) {
@@ -24,6 +34,8 @@ export function GuestSummary({
       </div>
     );
   }
+
+  const isHost = participantId.startsWith("host_");
 
   // Find claimed items for breakdown
   const claimedItems = session.items.filter((item) => item.claimedBy.includes(participantId));
@@ -46,6 +58,35 @@ export function GuestSummary({
     }
   };
 
+  const handleHostAutoVerify = async () => {
+    setLoading(true);
+    try {
+      const docRef = doc(db, "sessions", session.id);
+      
+      const updatedParticipants = session.participants.map((person) => {
+        if (person.id === participantId) {
+          return {
+            ...person,
+            paymentStatus: "verified" as const, // Direct lunas/verified for the host paying
+          };
+        }
+        return person;
+      });
+
+      await updateDoc(docRef, {
+        participants: updatedParticipants,
+      });
+
+      onSuccess("Klaim Host telah diverifikasi sebagai Lunas.");
+      onHostAutoVerified();
+    } catch (err: any) {
+      console.error("Host auto verification error:", err);
+      onError("Gagal memverifikasi klaim Host otomatis.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md mx-auto flex flex-col gap-5 px-4 pb-12 animate-fade-in">
       {/* Receipts Breakdown Display */}
@@ -55,7 +96,9 @@ export function GuestSummary({
             <Receipt size={20} />
           </div>
           <h2 className="text-xl font-extrabold text-[#212121] mt-1.5">Rincian Tagihan Anda</h2>
-          <p className="text-xs text-[#757575] font-semibold">{currentParticipant.name}</p>
+          <p className="text-xs text-[#757575] font-semibold">
+            {currentParticipant.name} {isHost && <span className="text-[9px] bg-[#00C853]/10 text-[#00C853] px-1.5 py-0.5 rounded font-extrabold uppercase ml-1">Host</span>}
+          </p>
         </div>
 
         {/* Breakdown Items details */}
@@ -143,19 +186,48 @@ export function GuestSummary({
         )}
       </div>
 
-      {/* Control navigation */}
-      <button
-        onClick={handleNextClick}
-        id="btn-summary-continue"
-        className="w-full bg-[#00C853] hover:bg-[#009624] text-white py-3.5 rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer mt-2"
-      >
-        <span>
-          {isLuckyDrawRequired && !isWinnerDeclared
-            ? "Mulai Diundi Lucky Draw"
-            : "Lanjut ke Pembayaran"}
-        </span>
-        <ArrowRight size={17} />
-      </button>
+      {/* Host Option vs Regular Option */}
+      {isHost ? (
+        <div className="flex flex-col gap-3 mt-2">
+          {/* Option A: Direct verification for host who paid the merchant directly */}
+          <button
+            onClick={handleHostAutoVerify}
+            disabled={loading}
+            className="w-full bg-[#00C853] hover:bg-[#009624] text-white py-3.5 rounded-xl font-bold text-sm shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+          >
+            <div className="flex items-center gap-1.5">
+              <CheckCircle size={16} />
+              <span>Konfirmasi Selesai (Langsung Lunas)</span>
+            </div>
+            <span className="text-[9px] text-[#E8F5E9] font-medium leading-none">Pilih ini jika Anda adalah pembayar utama bill ke merchant/kasir.</span>
+          </button>
+
+          {/* Option B: Regular flow if someone else paid the merchant and Host needs to make regular transfer */}
+          <button
+            onClick={handleNextClick}
+            disabled={loading}
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+          >
+            <Shield size={13} />
+            <span>Transfer ke Orang Lain? Lanjut Pembayaran</span>
+          </button>
+        </div>
+      ) : (
+        /* Regular Guest button */
+        <button
+          onClick={handleNextClick}
+          id="btn-summary-continue"
+          className="w-full bg-[#00C853] hover:bg-[#009624] text-white py-3.5 rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer mt-2"
+        >
+          <span>
+            {isLuckyDrawRequired && !isWinnerDeclared
+              ? "Mulai Diundi Lucky Draw"
+              : "Lanjut ke Pembayaran"}
+          </span>
+          <ArrowRight size={17} />
+        </button>
+      )}
     </div>
   );
 }
+

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { doc, onSnapshot, updateDoc, deleteDoc } from "firebase/firestore";
 import { db, OperationType, handleFirestoreError } from "../firebase";
 import { Session, Participant, ReceiptItem } from "../types";
-import { formatIDR, calculateSessionFinance } from "../utils/calculations";
+import { formatIDR, calculateSessionFinance, getPublicShareUrl } from "../utils/calculations";
 import { ClipboardCheck, Copy, ArrowLeft, RefreshCw, Eye, CheckCircle, Circle, AlertCircle, X, ShieldAlert, Check, Landmark, MessageCircle, QrCode, Share2, Dices } from "lucide-react";
 
 interface MonitorDashboardProps {
@@ -19,6 +19,7 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
   // Modal for proof view
   const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
   const [viewProofParticipantName, setViewProofParticipantName] = useState<string>("");
+  const [viewProofParticipantId, setViewProofParticipantId] = useState<string>("");
   const [copiedWA, setCopiedWA] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   
@@ -114,7 +115,14 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
   };
 
   const handleCopyShareLink = async () => {
-    const link = `${window.location.origin}/s/${sessionId}`;
+    if (!hostHasClaimed) {
+      const confirmProceed = window.confirm("Peringatan Urgent! Anda belum memilih item pribadi Anda (Host). Jika link disebar sekarang, tamu Anda beresiko salah mengklaim pesanan pribadi Anda. Apakah Anda tetap ingin menyalin link?");
+      if (!confirmProceed) {
+        openHostClaimModal();
+        return;
+      }
+    }
+    const link = getPublicShareUrl(sessionId);
     try {
       await navigator.clipboard.writeText(link);
       onSuccess("Tautan tamu berhasil disalin ke papan klip.");
@@ -210,6 +218,9 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
     .filter((p) => p.paymentStatus === "verified")
     .reduce((sum, p) => sum + p.total, 0);
 
+  const hostParticipant = session.participants.find((p) => p.id.startsWith("host_"));
+  const hostHasClaimed = hostParticipant ? (hostParticipant.paymentStatus !== "unclaimed") : true;
+
   // Unclaimed items analyzer
   const unclaimedItems = session.items.filter((item) => item.claimedBy.length === 0);
   const unclaimedItemsCount = unclaimedItems.length;
@@ -256,7 +267,7 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
 
   const generateWhatsAppSummary = () => {
     if (!session) return "";
-    const sessionUrl = `${window.location.origin}/s/${sessionId}`;
+    const sessionUrl = getPublicShareUrl(sessionId);
     
     let text = `*Patungan: ${session.name}*\n`;
     text += `🔗 *Link Sesi:* ${sessionUrl}\n\n`;
@@ -346,20 +357,31 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
           <span>Kembali</span>
         </button>
 
-        <div className="flex items-center">
-          {session.status === "settled" ? (
-            <span className="text-[10px] bg-green-50 border border-green-200/60 text-green-700 px-3 py-1.5 rounded-xl font-extrabold uppercase shrink-0 flex items-center gap-1.5 select-none shadow-sm">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-              Sesi Selesai
-            </span>
-          ) : (
-            <span className="text-[10px] bg-blue-50 border border-blue-200/60 text-blue-700 px-3 py-1.5 rounded-xl font-extrabold uppercase shrink-0 flex items-center gap-1.5 select-none shadow-sm">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
-              Sesi Pembagian
-            </span>
-          )}
+        <div className="text-right">
+          <h1 className="text-sm font-extrabold text-neutral-900 leading-none">Patungan</h1>
+          <p className="text-[9px] text-[#757575] font-semibold mt-0.5">Foto struk, share link, beres.</p>
         </div>
       </header>
+
+      {/* MOST URGENT: Host has not claimed alert card */}
+      {!hostHasClaimed && (
+        <div className="bg-red-50 border-2 border-red-500 rounded-3xl p-5 flex flex-col gap-2.5 shadow-md shadow-red-500/5 font-sans animate-fade-in">
+          <div className="flex items-center gap-2 text-red-650">
+            <ShieldAlert size={20} className="stroke-[2.5]" />
+            <h3 className="text-xs font-extrabold uppercase tracking-wider">PERNYATAAN URGENT: Klaim Host Belum Diisi</h3>
+          </div>
+          <p className="text-[11px] text-red-700 leading-relaxed font-semibold">
+            Anda belum mengklaim pesanan pribadi Anda! Sebelum membagikan barcode QR atau menyalin link ini untuk teman Anda, <span className="font-extrabold underline text-red-800">Anda wajib memilih apa saja yang Anda pesan</span> terlebih dahulu agar sisa tagihan tidak otomatis dibebankan ke tamu dan membuat bill mereka kemahalan.
+          </p>
+          <button
+            onClick={openHostClaimModal}
+            className="mt-1 self-start bg-red-600 hover:bg-red-700 text-white font-extrabold text-[10.5px] px-4 py-2.5 rounded-xl border border-transparent shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+          >
+            <span>Klaim Milik Pribadi Saya Sekarang</span>
+            <span>→</span>
+          </button>
+        </div>
+      )}
 
       {/* Main Title and Stats */}
       <div className="bg-neutral-0 rounded-3xl p-5.5 border border-neutral-200 shadow-2 flex flex-col gap-4.5 font-sans">
@@ -411,7 +433,16 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
               {/* Action 1: Scan QR */}
               <button
-                onClick={() => setShowQRModal(true)}
+                onClick={() => {
+                  if (!hostHasClaimed) {
+                    const confirmProceed = window.confirm("Peringatan Urgent! Anda belum memilih item pribadi Anda (Host). Sebelum membagikan barcode QR, harap klaim item pribadi Anda terlebih dahulu agar tamu tidak salah pilih pesanan Anda. Klaim pesanan Anda sekarang?");
+                    if (!confirmProceed) {
+                      openHostClaimModal();
+                      return;
+                    }
+                  }
+                  setShowQRModal(true);
+                }}
                 className="flex items-center gap-3 p-3 bg-neutral-0 hover:bg-neutral-50 border border-neutral-200 hover:border-neutral-300 rounded-2xl transition-all cursor-pointer group active:scale-[0.97] text-left shadow-sm shadow-neutral-100/50"
               >
                 <div className="p-2 rounded-xl bg-neutral-100 text-neutral-700 shrink-0 group-hover:scale-105 transition-transform border border-neutral-200/60 shadow-sm">
@@ -632,6 +663,7 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
                         onClick={() => {
                           setViewProofUrl(person.proofImageUrl);
                           setViewProofParticipantName(person.name);
+                          setViewProofParticipantId(person.id);
                         }}
                         className="text-[10px] font-bold text-[#1565C0] hover:underline flex items-center gap-1 cursor-pointer"
                       >
@@ -648,7 +680,7 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
                     {person.paymentStatus !== "verified" && person.total > 0 && (
                       <a
                         href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                          `Halo *${person.name}*! Yuk segera selesaikan tagihan kamu untuk acara *${session.name}*. Total tagihan kamu senilai *${formatIDR(person.total)}*.\n\nSilakan proses pembayaran di tautan berikut: ${window.location.origin}/s/${sessionId}\n\nTerima kasih banyak ya!`
+                          `Halo *${person.name}*! Yuk segera selesaikan tagihan kamu untuk acara *${session.name}*. Total tagihan kamu senilai *${formatIDR(person.total)}*.\n\nSilakan proses pembayaran di tautan berikut: ${getPublicShareUrl(sessionId)}\n\nTerima kasih banyak ya!`
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -660,13 +692,14 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
                       </a>
                     )}
 
-                    {hasPending && (
+                    {/* Direct Verification for Host */}
+                    {person.paymentStatus !== "verified" && person.total > 0 && (
                       <button
                         onClick={() => handleVerifyParticipant(person.id)}
-                        className="bg-[#00C853] hover:bg-[#009624] text-white text-[11px] font-extrabold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 cursor-pointer active:scale-95 transition-all ml-auto"
+                        className="bg-[#00C853] hover:bg-[#009624] text-white text-[10px] font-extrabold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 cursor-pointer active:scale-95 transition-all ml-auto"
                       >
                         <Check size={11} />
-                        <span>Verifikasi</span>
+                        <span>Verifikasi Manual</span>
                       </button>
                     )}
                   </div>
@@ -690,6 +723,7 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
                 onClick={() => {
                   setViewProofUrl(null);
                   setViewProofParticipantName("");
+                  setViewProofParticipantId("");
                 }}
                 className="p-2 bg-slate-100 hover:bg-slate-200 text-[#757575] rounded-full transition-colors cursor-pointer"
               >
@@ -706,10 +740,38 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
               />
             </div>
 
-            <div className="p-4 bg-slate-50 flex flex-col gap-2">
-              <p className="text-[10px] text-[#757575] leading-relaxed text-center font-medium">
+            <div className="p-4 bg-slate-50 flex flex-col gap-3">
+              <p className="text-[10px] text-[#757575] leading-relaxed text-center font-semibold">
                 Harap cocokan nominal dengan mutasi bank rujukan Anda sebelum mengetuk verifikasi.
               </p>
+              
+              <div className="flex gap-2.5 mt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewProofUrl(null);
+                    setViewProofParticipantName("");
+                    setViewProofParticipantId("");
+                  }}
+                  className="flex-1 bg-white hover:bg-slate-100 border border-[#E0E0E0] text-[11px] font-bold py-2.5 rounded-xl transition-all cursor-pointer text-[#757575] text-center"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const pId = viewProofParticipantId;
+                    setViewProofUrl(null);
+                    setViewProofParticipantName("");
+                    setViewProofParticipantId("");
+                    await handleVerifyParticipant(pId);
+                  }}
+                  className="flex-1 bg-[#00C853] hover:bg-[#009624] text-white text-[11px] font-extrabold py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <Check size={14} />
+                  <span>Verifikasi Lunas</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -735,7 +797,7 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
             <div className="bg-slate-50 flex flex-col items-center justify-center p-8 gap-4">
               <div className="p-3 border border-[#E0E0E0] bg-white rounded-2xl shadow-sm">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/s/${sessionId}`)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(getPublicShareUrl(sessionId))}`}
                   alt="Scan QR Code Patungan"
                   className="w-48 h-48"
                   referrerPolicy="no-referrer"
@@ -749,7 +811,7 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
             <div className="p-4 bg-slate-50 border-t border-[#E0E0E0] flex gap-2">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/s/${sessionId}`);
+                  navigator.clipboard.writeText(getPublicShareUrl(sessionId));
                   onSuccess("Tautan salinan berhasil disalin ke papan klip.");
                 }}
                 className="flex-1 bg-white hover:bg-slate-100 border border-[#E0E0E0] text-[11px] font-bold py-2.5 rounded-xl transition-all cursor-pointer text-[#212121]"

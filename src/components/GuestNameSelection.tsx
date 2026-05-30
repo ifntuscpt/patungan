@@ -1,5 +1,5 @@
 import { Session, Participant } from "../types";
-import { User } from "lucide-react";
+import { User, Lock } from "lucide-react";
 
 interface GuestNameSelectionProps {
   session: Session;
@@ -38,6 +38,7 @@ export function GuestNameSelection({ session, onNameSelected }: GuestNameSelecti
 
           <div className="grid grid-cols-2 gap-3">
             {session.participants.map((person) => {
+              const isHost = person.id.startsWith("host_");
               const initial = person.name.substring(0, 1).toUpperCase();
               
               const isVerified = person.paymentStatus === "verified";
@@ -47,17 +48,29 @@ export function GuestNameSelection({ session, onNameSelected }: GuestNameSelecti
               return (
                 <div
                   key={person.id}
-                  onClick={() => handleSelect(person.id)}
-                  className="bg-neutral-50 hover:bg-green-50/10 border border-neutral-200 hover:border-green-500 p-4 rounded-2xl flex flex-col items-center text-center gap-2.5 transition-all active:scale-[0.97] cursor-pointer group shadow-sm"
+                  onClick={() => {
+                    if (isHost) return;
+                    handleSelect(person.id);
+                  }}
+                  className={`p-4 rounded-2xl flex flex-col items-center text-center gap-2.5 transition-all shadow-sm
+                    ${isHost 
+                      ? "bg-neutral-100 border border-neutral-350 opacity-65 cursor-not-allowed select-none" 
+                      : "bg-neutral-50 hover:bg-green-50/10 border border-neutral-200 hover:border-green-500 active:scale-[0.97] cursor-pointer group"
+                    }`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 font-extrabold flex items-center justify-center text-sm group-hover:scale-105 transition-transform shrink-0 border border-green-200/50">
-                    {initial}
+                  <div className={`w-10 h-10 rounded-full font-extrabold flex items-center justify-center text-sm shrink-0 border
+                    ${isHost
+                      ? "bg-neutral-200 text-neutral-500 border-neutral-300"
+                      : "bg-green-50 text-green-600 border-green-200/50 group-hover:scale-105 transition-transform"
+                    }`}
+                  >
+                    {isHost ? <Lock size={15} className="stroke-[2.5]" /> : initial}
                   </div>
                   <div>
                     <h3 className="font-extrabold text-xs text-neutral-900 truncate max-w-[124px] flex items-center justify-center gap-1">
                       <span>{person.name}</span>
-                      {person.id.startsWith("host_") && (
-                        <span className="text-[8px] bg-green-500 text-white px-1 py-0.2 rounded font-extrabold uppercase shrink-0 scale-90">
+                      {isHost && (
+                        <span className="text-[8px] bg-neutral-550 text-white px-1.2 py-0.2 rounded font-extrabold uppercase shrink-0 scale-90">
                           Host
                         </span>
                       )}
@@ -65,25 +78,33 @@ export function GuestNameSelection({ session, onNameSelected }: GuestNameSelecti
                     
                     {/* Status hint of selections */}
                     <div className="mt-1.5">
-                      {isVerified && (
-                        <span className="text-[9px] bg-green-100 text-green-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
-                          Lunas
+                      {isHost ? (
+                        <span className="text-[9px] bg-neutral-200/80 text-neutral-500 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
+                          Kunci (Host)
                         </span>
-                      )}
-                      {isPending && (
-                        <span className="text-[9px] bg-orange-100 text-orange-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
-                          Verifikasi
-                        </span>
-                      )}
-                      {isClaimed && (
-                        <span className="text-[9px] bg-blue-100 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
-                          Claimed
-                        </span>
-                      )}
-                      {!isVerified && !isPending && !isClaimed && (
-                        <span className="text-[9px] bg-neutral-200/60 text-neutral-600 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
-                          Belum Klaim
-                        </span>
+                      ) : (
+                        <>
+                          {isVerified && (
+                            <span className="text-[9px] bg-green-100 text-green-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
+                              Lunas
+                            </span>
+                          )}
+                          {isPending && (
+                            <span className="text-[9px] bg-orange-100 text-orange-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
+                              Verifikasi
+                            </span>
+                          )}
+                          {isClaimed && (
+                            <span className="text-[9px] bg-blue-100 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
+                              Claimed
+                            </span>
+                          )}
+                          {!isVerified && !isPending && !isClaimed && (
+                            <span className="text-[9px] bg-neutral-200/60 text-neutral-600 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
+                              Belum Klaim
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

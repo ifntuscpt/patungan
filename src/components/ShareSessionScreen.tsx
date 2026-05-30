@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { Session } from "../types";
-import { formatIDR } from "../utils/calculations";
-import { Copy, Share2, ClipboardCheck, ArrowRight, Sparkles } from "lucide-react";
+import { formatIDR, getPublicShareUrl } from "../utils/calculations";
+import { Copy, Share2, ClipboardCheck, ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
+import { GuestItemClaim } from "./GuestItemClaim";
 
 interface ShareSessionScreenProps {
   sessionId: string;
@@ -45,7 +46,7 @@ export function ShareSessionScreen({
   }, [sessionId, onError]);
 
   // Develop guest link matching guest view route: /s/:sessionId
-  const shareUrl = `${window.location.origin}/s/${sessionId}`;
+  const shareUrl = getPublicShareUrl(sessionId);
 
   const handleCopyLink = async () => {
     try {
@@ -105,6 +106,25 @@ export function ShareSessionScreen({
     );
   }
 
+  const hostParticipant = session.participants.find((p) => p.id.startsWith("host_"));
+  const hostHasClaimed = hostParticipant && hostParticipant.paymentStatus !== "unclaimed";
+
+  if (!hostHasClaimed && hostParticipant) {
+    return (
+      <div className="w-full max-w-[440px] mx-auto flex flex-col gap-4 animate-fade-in font-sans">
+        <GuestItemClaim
+          session={session}
+          participantId={hostParticipant.id}
+          onClaimCompleted={() => {
+            onSuccess("Klaim item pribadi Host berhasil disimpan! Sesi siap dibagikan.");
+          }}
+          onError={onError}
+          onSuccess={onSuccess}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-md mx-auto flex flex-col justify-center items-center px-4 py-8 animate-fade-in font-sans">
       <div className="w-full bg-neutral-0 rounded-3xl p-8 border border-neutral-200 shadow-2 flex flex-col items-center text-center gap-6">
@@ -123,31 +143,12 @@ export function ShareSessionScreen({
 
         {/* Info detail banner */}
         <div className="w-full bg-neutral-50 rounded-2xl p-4.5 border border-neutral-200/50 text-left flex flex-col gap-1.5">
-          <p className="text-[10px] text-neutral-450 uppercase tracking-wider font-extrabold">Informasi Sesi</p>
+          <p className="text-[10px] text-neutral-450 uppercase tracking-wider font-extrabold font-sans">Informasi Sesi</p>
           <p className="text-sm font-extrabold text-neutral-950 truncate leading-none py-0.5">{session.name}</p>
           <div className="flex justify-between items-center mt-1 font-semibold text-xs">
-            <span className="text-neutral-500">Total Tagihan Struk:</span>
+            <span className="text-neutral-500 font-sans">Total Tagihan Struk:</span>
             <span className="font-extrabold text-green-600 font-mono">{formatIDR(session.grandTotal)}</span>
           </div>
-        </div>
-
-        {/* Link interactive display */}
-        <div className="w-full flex items-center bg-neutral-50 border border-neutral-200 rounded-xl pl-3 pr-2 py-2">
-          <input
-            type="text"
-            readOnly
-            value={shareUrl}
-            className="bg-transparent text-xs text-neutral-800 outline-none flex-1 truncate font-mono select-all font-bold pr-2"
-          />
-          <button
-            onClick={handleCopyLink}
-            id="btn-copy-link"
-            className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0 border
-              ${copied ? "bg-green-500 text-white border-green-500" : "bg-neutral-0 hover:bg-neutral-50 text-neutral-500 border-neutral-200 shadow-sm"}`}
-            title="Salin Tautan"
-          >
-            {copied ? <ClipboardCheck size={14} className="stroke-[2.5]" /> : <Copy size={14} className="stroke-[2.5]" />}
-          </button>
         </div>
 
         {/* Dynamic Scan QR Code Area */}
@@ -166,7 +167,7 @@ export function ShareSessionScreen({
           </p>
         </div>
 
-        {/* Native and direct shares */}
+        {/* Native and direct share */}
         <div className="w-full flex flex-col gap-2.5">
           <button
             onClick={handleNativeShare}
@@ -174,7 +175,7 @@ export function ShareSessionScreen({
             className="w-full btn-primary-gradient text-white py-3.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-green active:scale-95 cursor-pointer"
           >
             <Share2 size={15} className="stroke-[2.5]" />
-            <span>Bagikan Sesi Kasir</span>
+            <span>Bagikan Tautan Sesi</span>
           </button>
 
           <button
