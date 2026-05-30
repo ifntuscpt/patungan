@@ -182,8 +182,49 @@ export default function App() {
         return;
       }
 
+      // Validation 1.5: If on guest-select (Name Selection page) but we already have a valid activeParticipantId in localStorage,
+      // redirect them straight to their correct step instead of showing the user selection grid
+      if (currentRoute.route === "guest-select" && activeParticipantId) {
+        const me = activeGuestSession.participants.find((p) => p.id === activeParticipantId);
+        if (me) {
+          if (me.paymentStatus === "claimed") {
+            navigateTo(`/s/${sId}/summary`);
+            return;
+          } else if (me.paymentStatus === "pending_verification" || me.paymentStatus === "verified") {
+            navigateTo(`/s/${sId}/done`);
+            return;
+          } else {
+            navigateTo(`/s/${sId}/claim`);
+            return;
+          }
+        }
+      }
+
       // Validation 2: If on payment page, check if payment is already pending or verified, redirect to /done
       if (currentRoute.route === "guest-payment" && activeParticipantId) {
+        const me = activeGuestSession.participants.find((p) => p.id === activeParticipantId);
+        if (me && (me.paymentStatus === "pending_verification" || me.paymentStatus === "verified")) {
+          navigateTo(`/s/${sId}/done`);
+          return;
+        }
+      }
+
+      // Validation 3: If on guest-claim page, but they or another tab already finalized and set status to "claimed", "pending_verification", or "verified"
+      if (currentRoute.route === "guest-claim" && activeParticipantId) {
+        const me = activeGuestSession.participants.find((p) => p.id === activeParticipantId);
+        if (me) {
+          if (me.paymentStatus === "claimed") {
+            navigateTo(`/s/${sId}/summary`);
+            return;
+          } else if (me.paymentStatus === "pending_verification" || me.paymentStatus === "verified") {
+            navigateTo(`/s/${sId}/done`);
+            return;
+          }
+        }
+      }
+
+      // Validation 4: If on guest-summary page, but they already finalized and set status to "pending_verification" or "verified"
+      if (currentRoute.route === "guest-summary" && activeParticipantId) {
         const me = activeGuestSession.participants.find((p) => p.id === activeParticipantId);
         if (me && (me.paymentStatus === "pending_verification" || me.paymentStatus === "verified")) {
           navigateTo(`/s/${sId}/done`);
@@ -257,24 +298,28 @@ export default function App() {
 
       // 1. Guest landing - Select name
       if (route === "guest-select") {
-        // If has persistent identity, directly guide them to claim screen!
-        if (activeParticipantId && activeGuestSession.participants.some(p => p.id === activeParticipantId)) {
-          // Double check if claimant has chosen previous items, or directly forward
-          return (
-            <GuestItemClaim
-              session={activeGuestSession}
-              participantId={activeParticipantId}
-              onClaimCompleted={() => navigateTo(`/s/${sId}/summary`)}
-              onError={(m) => addToast(m, "error")}
-              onSuccess={(m) => addToast(m, "success")}
-            />
-          );
-        }
-
         return (
           <GuestNameSelection
             session={activeGuestSession}
             onNameSelected={(pId) => {
+              const person = activeGuestSession.participants.find(p => p.id === pId);
+              if (person) {
+                const isHost = pId.startsWith("host_");
+                const isVerified = person.paymentStatus === "verified";
+                const isPending = person.paymentStatus === "pending_verification";
+                const isClaimed = person.paymentStatus === "claimed";
+                
+                if (isHost || isVerified || isPending || isClaimed) {
+                  let msg = "Rekan patungan ini sudah tidak bisa dipilih.";
+                  if (isHost) msg = "Akun Host dikunci (Klaim otomatis dari data Host).";
+                  else if (isVerified) msg = "Rekan patungan ini sudah melunasi tagihan.";
+                  else if (isPending) msg = "Rekan patungan ini sedang menunggu verifikasi pembayaran.";
+                  else if (isClaimed) msg = "Rekan patungan ini sudah melakukan klaim item.";
+                  
+                  addToast(msg, "error");
+                  return;
+                }
+              }
               storeParticipantId(sId, pId);
               navigateTo(`/s/${sId}/claim`);
             }}

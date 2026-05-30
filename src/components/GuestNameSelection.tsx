@@ -44,31 +44,32 @@ export function GuestNameSelection({ session, onNameSelected }: GuestNameSelecti
               const isVerified = person.paymentStatus === "verified";
               const isPending = person.paymentStatus === "pending_verification";
               const isClaimed = person.paymentStatus === "claimed";
+              const isLocked = isHost || isVerified || isPending || isClaimed;
 
               return (
                 <div
                   key={person.id}
                   onClick={() => {
-                    if (isHost) return;
+                    if (isLocked) return;
                     handleSelect(person.id);
                   }}
                   className={`p-4 rounded-2xl flex flex-col items-center text-center gap-2.5 transition-all shadow-sm
-                    ${isHost 
-                      ? "bg-neutral-100 border border-neutral-350 opacity-65 cursor-not-allowed select-none" 
+                    ${isLocked 
+                      ? "bg-neutral-100 border border-neutral-200 opacity-50 grayscale cursor-not-allowed select-none pointer-events-none" 
                       : "bg-neutral-50 hover:bg-green-50/10 border border-neutral-200 hover:border-green-500 active:scale-[0.97] cursor-pointer group"
                     }`}
                 >
                   <div className={`w-10 h-10 rounded-full font-extrabold flex items-center justify-center text-sm shrink-0 border
-                    ${isHost
+                    ${isLocked
                       ? "bg-neutral-200 text-neutral-500 border-neutral-300"
                       : "bg-green-50 text-green-600 border-green-200/50 group-hover:scale-105 transition-transform"
                     }`}
                   >
-                    {isHost ? <Lock size={15} className="stroke-[2.5]" /> : initial}
+                    {isLocked ? <Lock size={15} className="stroke-[2.5]" /> : initial}
                   </div>
-                  <div>
-                    <h3 className="font-extrabold text-xs text-neutral-900 truncate max-w-[124px] flex items-center justify-center gap-1">
-                      <span>{person.name}</span>
+                  <div className="w-full">
+                    <h3 className="font-extrabold text-xs text-neutral-900 truncate flex items-center justify-center gap-1 w-full">
+                      <span className="truncate max-w-[70px]">{person.name}</span>
                       {isHost && (
                         <span className="text-[8px] bg-neutral-550 text-white px-1.2 py-0.2 rounded font-extrabold uppercase shrink-0 scale-90">
                           Host
@@ -77,29 +78,29 @@ export function GuestNameSelection({ session, onNameSelected }: GuestNameSelecti
                     </h3>
                     
                     {/* Status hint of selections */}
-                    <div className="mt-1.5">
+                    <div className="mt-1.5 flex justify-center">
                       {isHost ? (
                         <span className="text-[9px] bg-neutral-200/80 text-neutral-500 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
-                          Kunci (Host)
+                          Kunci
                         </span>
                       ) : (
                         <>
                           {isVerified && (
-                            <span className="text-[9px] bg-green-100 text-green-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
+                            <span className="text-[9px] bg-green-100/50 text-green-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
                               Lunas
                             </span>
                           )}
                           {isPending && (
-                            <span className="text-[9px] bg-orange-100 text-orange-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
+                            <span className="text-[9px] bg-orange-100/50 text-orange-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
                               Verifikasi
                             </span>
                           )}
                           {isClaimed && (
-                            <span className="text-[9px] bg-blue-100 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
+                            <span className="text-[9px] bg-blue-100/50 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
                               Claimed
                             </span>
                           )}
-                          {!isVerified && !isPending && !isClaimed && (
+                          {!isLocked && (
                             <span className="text-[9px] bg-neutral-200/60 text-neutral-600 font-extrabold px-1.5 py-0.5 rounded-md uppercase">
                               Belum Klaim
                             </span>

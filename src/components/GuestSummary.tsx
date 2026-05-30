@@ -3,7 +3,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { Session, Participant } from "../types";
 import { formatIDR } from "../utils/calculations";
-import { Receipt, AlertTriangle, ArrowRight, Sparkles, AlertCircle, CheckCircle, Shield } from "lucide-react";
+import { Receipt, AlertTriangle, ArrowRight, Sparkles, AlertCircle, CheckCircle, Shield, Dices } from "lucide-react";
 
 interface GuestSummaryProps {
   session: Session;
@@ -150,8 +150,11 @@ export function GuestSummary({
 
           {/* Conditional rounding display */}
           {isWinnerDeclared && currentParticipant.hasRoundingBurden && (
-            <div className="flex justify-between text-[#E65100] font-extrabold bg-[#FFF3E0] p-1.5 rounded border border-[#FFE0B2] animate-pulse mt-1">
-              <span>🎰 Beban Pembulatan Struk</span>
+            <div className="flex justify-between text-[#E65100] font-extrabold bg-[#FFF3E0] p-1.5 rounded border border-[#FFE0B2] animate-pulse mt-1 items-center gap-1.5">
+              <span className="flex items-center gap-1.5">
+                <Sparkles size={14} className="text-[#E65100] stroke-[2.5]" />
+                Beban Pembulatan Struk
+              </span>
               <span>+{formatIDR(session.roundingAmount)}</span>
             </div>
           )}
@@ -169,7 +172,7 @@ export function GuestSummary({
         {/* Info Box detailing the Lucky Draw requirement */}
         {isLuckyDrawRequired && (
           <div className="bg-[#FFF3E0] border border-[#FFE0B2] rounded-2xl p-4 flex items-start gap-2.5 shadow-xs">
-            <span className="text-xl shrink-0 mt-0.5">🎲</span>
+            <Dices size={22} className="text-[#E65100] shrink-0 mt-0.5 stroke-[2.5]" />
             <div className="flex-1">
               <p className="text-xs font-bold text-[#E65100]">Lucky Draw Pembulatan</p>
               {isWinnerDeclared ? (

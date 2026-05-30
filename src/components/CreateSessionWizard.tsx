@@ -3,7 +3,7 @@ import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db, OperationType, handleFirestoreError, auth } from "../firebase";
 import { ReceiptItem, Participant, PaymentInfo, Session } from "../types";
 import { formatIDR, calculateSessionFinance } from "../utils/calculations";
-import { Camera, Plus, Trash2, ArrowRight, ArrowLeft, Check, Copy, Share2, Upload, Receipt, UserMinus, AlertCircle, Users, BarChart3, CreditCard, Lock, QrCode, Image } from "lucide-react";
+import { Camera, Plus, Trash2, ArrowRight, ArrowLeft, Check, Copy, Share2, Upload, Receipt, UserMinus, AlertCircle, Users, BarChart3, CreditCard, Lock, QrCode, Image, ClipboardList } from "lucide-react";
 
 interface CreateSessionWizardProps {
   onSessionCreated: (sessionId: string) => void;
@@ -524,7 +524,7 @@ export function CreateSessionWizard({ onSessionCreated, onBackToDashboard, onErr
 
           <div className="bg-neutral-0 rounded-3xl p-5 border border-neutral-200/80 shadow-2 flex flex-col gap-4 font-sans">
             <h3 className="font-extrabold text-sm text-neutral-900 tracking-tight border-b border-neutral-100 pb-3 flex items-center gap-2">
-              <span>📋</span>
+              <ClipboardList size={18} className="text-[#00C853] shrink-0 stroke-[2.5]" />
               <span>Daftar Item Patungan</span>
             </h3>
  

@@ -225,7 +225,7 @@ export function LuckyDrawSpinner({
 
           {/* Luxurious shimmering golden central center plate */}
           <div className="absolute w-12 h-12 rounded-full border-4 border-[#212121] bg-gradient-to-tr from-[#FFD54F] via-[#FFC107] to-[#FF8F00] z-20 flex items-center justify-center shadow-lg transform active:scale-95 duration-100 cursor-pointer">
-            <span className="text-sm font-bold animate-pulse">🎰</span>
+            <Coins size={16} className="text-neutral-900 animate-pulse stroke-[2.5]" />
           </div>
 
           {/* Aesthetic Ring of casino flashing dots */}

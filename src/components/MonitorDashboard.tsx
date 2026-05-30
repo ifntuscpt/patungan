@@ -270,7 +270,7 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
     const sessionUrl = getPublicShareUrl(sessionId);
     
     let text = `*Patungan: ${session.name}*\n`;
-    text += `🔗 *Link Sesi:* ${sessionUrl}\n\n`;
+    text += `*Link Sesi:* ${sessionUrl}\n\n`;
     text += `*Total Tagihan Struk:* ${formatIDR(session.grandTotal)}\n`;
     text += `*Terkumpul:* ${formatIDR(verifiedGatheredTotal)}\n\n`;
     
@@ -345,7 +345,7 @@ export function MonitorDashboard({ sessionId, onBackToBeranda, onError, onSucces
   };
 
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col gap-5 px-4 pb-12 animate-fade-in">
+    <div className="w-full max-w-md mx-auto flex flex-col gap-5 px-4 pb-36 animate-fade-in">
       
       {/* Navigation Top Header */}
       <header className="flex justify-between items-center py-4 border-b border-neutral-200">

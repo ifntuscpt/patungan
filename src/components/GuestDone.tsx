@@ -100,16 +100,6 @@ export function GuestDone({
               <span>Periksa Status Sesi</span>
             </button>
           )}
-
-          {!isVerified && (
-            <button
-              onClick={onBackToClaim}
-              id="btn-back-to-claim-re-adjust"
-              className="w-full bg-white hover:bg-slate-50 text-[#757575] border border-[#E0E0E0] py-3 rounded-xl font-bold text-xs cursor-pointer transition-all active:scale-95"
-            >
-              Edit Klaim Menu / Menu Kurang
-            </button>
-          )}
         </div>
 
         {/* Referral / CTA to become Host section to boost new user acquisition */}

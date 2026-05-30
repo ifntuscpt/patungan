@@ -134,7 +134,7 @@ export function DashboardView({ onSelectSession, onCreateNew, onLogout, onError 
       {/* Header Panel */}
       <header className="flex justify-between items-center py-4 border-b border-neutral-200/85">
         <div className="flex items-center gap-3">
-          <AppLogo size={40} className="animate-pulse" />
+          <AppLogo size={40} className="relative select-none" />
           <div className="space-y-0.5">
             <h1 className="text-lg font-extrabold tracking-tight text-neutral-900 leading-none">Patungan</h1>
             <p className="text-neutral-500 text-[10px] font-semibold leading-none">Foto struk, share link, beres.</p>

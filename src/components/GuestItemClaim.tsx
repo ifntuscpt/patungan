@@ -3,7 +3,7 @@ import { doc, runTransaction } from "firebase/firestore";
 import { db } from "../firebase";
 import { Session, ReceiptItem, Participant } from "../types";
 import { formatIDR } from "../utils/calculations";
-import { Check, AlertTriangle, ArrowRight, HelpCircle, Utensils, X, Users, Info, Loader2 } from "lucide-react";
+import { Check, AlertTriangle, ArrowRight, HelpCircle, Utensils, X, Users, Info, Loader2, Lock } from "lucide-react";
 
 interface GuestItemClaimProps {
   session: Session;
@@ -22,6 +22,7 @@ export function GuestItemClaim({
 }: GuestItemClaimProps) {
   const currentParticipant = session.participants.find((p) => p.id === participantId);
   const participantName = currentParticipant?.name || "Guest";
+  const isPendingOrVerified = currentParticipant?.paymentStatus === "pending_verification" || currentParticipant?.paymentStatus === "verified";
 
   // Local selection of item IDs
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>(() => {
@@ -38,6 +39,10 @@ export function GuestItemClaim({
   const [conflictModalItem, setConflictModalItem] = useState<ReceiptItem | null>(null);
 
   const handleToggleItem = (item: ReceiptItem) => {
+    if (isPendingOrVerified) {
+      onError("Klaim item tidak dapat diubah karena Anda sedang menunggu verifikasi atau sudah lunas.");
+      return;
+    }
     const isSelected = selectedItemIds.includes(item.id);
 
     if (isSelected) {
@@ -76,6 +81,10 @@ export function GuestItemClaim({
     }, 0);
 
   const handleSubmitClaims = async () => {
+    if (isPendingOrVerified) {
+      onError("Klaim item tidak dapat diubah karena Anda sedang menunggu verifikasi atau sudah lunas.");
+      return;
+    }
     if (submitting) return;
     setConflictModalItem(null);
     setSubmitting(true);
@@ -179,6 +188,30 @@ export function GuestItemClaim({
       setSubmitting(false);
     }
   };
+
+  if (isPendingOrVerified) {
+    return (
+      <div className="w-full max-w-md mx-auto flex flex-col justify-center items-center px-4 py-8 animate-fade-in font-sans">
+        <div className="w-full bg-white rounded-3xl p-8 border border-[#E0E0E0] shadow-sm flex flex-col items-center text-center gap-6">
+          <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center">
+            <Lock size={38} className="stroke-[2.5]" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold text-[#212121]">Akses Edit Dikunci</h2>
+            <p className="text-xs text-[#757575] mt-2 leading-relaxed">
+              Klaim item tidak dapat diubah karena Anda <span className="font-bold text-[#EA580C]">sedang menunggu verifikasi</span> atau <span className="font-bold text-[#00C853]">sudah lunas</span>.
+            </p>
+          </div>
+          <button
+            onClick={onClaimCompleted}
+            className="w-full bg-[#00C853] text-white py-3 rounded-xl font-bold text-xs cursor-pointer shadow-md active:scale-95 transition-all text-center"
+          >
+            Lihat Status Pembayaran
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-[440px] mx-auto flex flex-col gap-5 px-4 pb-36 animate-fade-in">
